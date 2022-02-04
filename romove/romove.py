@@ -5,6 +5,7 @@ import os
 import stat
 import shutil
 import configparser
+import filecmp
 
 # 設定ファイルの読込み
 config = configparser.ConfigParser()
@@ -50,11 +51,44 @@ def save_dst():
         entry1.insert("end", save_path)
 
 # Stratボタン(ファイルコピー)
-def start_func():
+# ファイル比較
+def comp_func():
+    global src, dst
+    
     # エントリーBOXからパス取得
     src = entry0.get()
     dst = entry1.get()
     
+    try:
+        # バックアップ先のファイルパス
+        bu_file = os.path.join("TempFolder", os.path.basename(dst))
+        
+        # ファイルが更新されている場合
+        if not filecmp.cmp(bu_file, dst):
+            # 続行するかYes/No
+            if messagebox.askyesno("Continue?", "May have been updated."):
+                # ファイルコピー
+                copy_func()
+            
+            # 更新ファイルを保存するかYes/No
+            elif messagebox.askyesno("Save?", "Save the updated file?"):
+                
+                # 保存ダイアログの表示
+                typ = [("Excel Book", "*.xlsx"), ("Excel Book", "*.xls"), ("All Files", "*.*")]
+                save_path = filedialog.asksaveasfilename(filetypes = typ, defaultextension = "xlsx")
+                # ァイルが選択された場合保存
+                if len(save_path) != 0:
+                    shutil.copy(dst, save_path)
+ 
+        else:
+            # ファイルコピー
+            copy_func()
+    except:
+        # ファイルコピー
+        copy_func()
+
+# ファイルコピー
+def copy_func():
     try:
         # 読取り専用に変更(src)
         os.chmod(path = src, mode=stat.S_IREAD)
@@ -73,6 +107,11 @@ def start_func():
         with open("config.ini", "w+") as file:
             config.write(file)
 
+        # バックアップ
+        shutil.copy(dst, "TempFolder")
+        # 読取り専用に変更
+        os.chmod(path = os.path.join("TempFolder", os.path.basename(dst)), mode=stat.S_IWRITE)
+        
         # 終了通知
         messagebox.showinfo("Done!!", "Completed !!")
         
@@ -98,8 +137,9 @@ def start_func():
                 
 ##### GUI #####
 window = Tk()
-window.title("romove ver1.0.0")
+window.title("romove ver.2.0.0")
 window.resizable(False, False)
+window.iconphoto(True, PhotoImage(file = "tb_icon.png"))
 
 window.geometry("757x300")
 window.configure(bg = "#ffffff")
@@ -153,7 +193,7 @@ b0 = Button(
     image = img0,
     borderwidth = 0,
     highlightthickness = 0,
-    command = start_func,
+    command = comp_func,
     relief = "flat")
 
 b0.place(
